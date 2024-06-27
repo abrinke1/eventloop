@@ -209,8 +209,8 @@ def main():
 
 
     ## 2018 DeepCSV and DeepFlavB cuts: https://btv-wiki.docs.cern.ch/ScaleFactors/UL2018/
-    DeepB = {'L': 0.1208, 'M': 0.4168, 'T': 0.7665}
-    FlavB = {'L': 0.0490, 'M': 0.2783, 'T': 0.7100}
+    DeepB = {'L': 0.1208, 'M': 0.4168, 'T': 0.7665}  ## AKA "deepCSV"
+    FlavB = {'L': 0.0490, 'M': 0.2783, 'T': 0.7100}  ## AKA "deepJet"
 
     ## Loop through events, select, and plot
     nEntries = chains['Events'].GetEntries()
