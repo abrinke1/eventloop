@@ -17,42 +17,43 @@ MASSH    = 'mass'
 MASSWIN  = [100, 140]
 MASSESA  = ['15', '30', '55']
 
+BKGS = []  ## Could do MC-based background estimate, currently not implemented
+
 # # IN_DIR  = '/eos/cms/store/user/ssawant/htoaa/analysis/20240530_ggH0l_for2DAlphabet/2018/2DAlphabet_inputFiles/'
 # IN_DIR  = '/eos/cms/store/user/ssawant/htoaa/analysis/20240627_gg0l_1/2018/2DAlphabet_inputFiles/gg0lLo/'
 # SIGS    = ['ggHtoaato4b']
-# BKGS    = []
 # CATS    = ['gg0lLo']
 # WP_CUTS = ['WP40', 'WP60']
 
-IN_DIR  = '/afs/cern.ch/user/m/moanwar/public/forAndrew/2DAlphabetfiles/'
-SIGS    = ['VBFHtoaato4b']
-BKGS    = []
-CATS    = ['VBFjj']
-WP_CUTS = ['WP40', 'WP60']
+# IN_DIR  = '/afs/cern.ch/user/m/moanwar/public/forAndrew/2DAlphabetfiles/'
+# SIGS    = ['VBFHtoaato4b']
+# CATS    = ['VBFjj']
+# WP_CUTS = ['WP40', 'WP60']
 
-# IN_DIR   = '/afs/cern.ch/user/h/hboucham/public/2D_062324/' ## Single lepton
-# SIGS     = ['WHtoaato4b', 'ttHtoaato4b']
-# BKGS     = []  # ['Wlv', 'TT1l']
-# CATS     = ['WlvLo', 'WlvHi', 'ttblv', 'ttbblv']
-# WP_CUTS  = ['WP60']
+IN_DIR   = '/afs/cern.ch/user/h/hboucham/public/2D_1L_070924/' ## Single lepton
+SIGS     = ['WHtoaato4b', 'ttHtoaato4b']
+CATS     = ['WlvLo', 'WlvHi', 'ttblv', 'ttbblv']
+WP_CUTS  = ['WP60']
 
-# IN_DIR   = '/afs/cern.ch/user/h/hboucham/public/2D_Alphabet_root_052424/'
+# IN_DIR   = '/afs/cern.ch/user/h/hboucham/public/2D_2Ltt_070924/' ## Double lepton
+# SIGS     = ['ttHtoaato4b']
+# CATS     = ['ttbll', 'ttbbll']
+# WP_CUTS  = ['WP40', 'WP60', 'WP80']
+
+# IN_DIR   = '/afs/cern.ch/user/h/hboucham/public/2D_2LZ_070924/'
 # SIGS     = ['ZHtoaato4b']
-# BKGS     = []  # ['Wlv', 'TT1l']
 # CATS     = ['Zll']
 # WP_CUTS  = ['WP60']
 
 # # IN_DIR  = '/eos/cms/store/user/ssawant/htoaa/analysis/20240530_VHHadronicMode_for2DAlphabet_1/2018/2DAlphabet_inputFiles/'
 # IN_DIR  = '/eos/cms/store/user/ssawant/htoaa/analysis/20240626_Vjj/2018/2DAlphabet_inputFiles/Vjj/'
 # SIGS    = ['WHtoaato4b', 'ZHtoaato4b']
-# BKGS    = []
 # CATS    = ['Vjj']
 # WP_CUTS = ['WP40', 'WP60']
 
 # # IN_DIR  = '/eos/cms/store/user/ssawant/htoaa/analysis/20240529_ZH_4b2nu_for2DAlphabet/2018/2DAlphabet_inputFiles/'
 # IN_DIR  = '/eos/cms/store/user/ssawant/htoaa/analysis/20240626_Zvv_METDataset_2/2018/2DAlphabet_inputFiles/ZvvLo/'
 # SIGS    = ['ZHtoaato4b']
-# BKGS    = []
 # CATS    = ['ZvvLo']
 # WP_CUTS = ['WP40', 'WP60']
 
@@ -130,13 +131,15 @@ def main():
                 print('Scaling signal by 0.25 to compensate. - AWB 2024.06.26')
                 nSig *= 0.25
 
-            nBkg  = yields[wp][cat]['Data']['Fail']['mH_in']
-            nBkg *= yields[wp][cat]['Data']['Pass']['mH_out']
-            nBkg /= yields[wp][cat]['Data']['Fail']['mH_out']
+            ## For any 0 yields, set to 0.5 as best guess between 0 and 1
+            nBkg  = max(yields[wp][cat]['Data']['Fail']['mH_in'],  0.5)
+            nBkg *= max(yields[wp][cat]['Data']['Pass']['mH_out'], 0.5)
+            nBkg /= max(yields[wp][cat]['Data']['Fail']['mH_out'], 0.5)
 
-            eBkg  = (1.0 / yields[wp][cat]['Data']['Fail']['mH_in'])
-            eBkg += (1.0 / yields[wp][cat]['Data']['Pass']['mH_out'])
-            eBkg += (1.0 / yields[wp][cat]['Data']['Fail']['mH_out'])
+            ## For any 0 yields, set to 1.0, i.e. 100% relative uncertainty
+            eBkg  = (1.0 / max(yields[wp][cat]['Data']['Fail']['mH_in'],  1.0))
+            eBkg += (1.0 / max(yields[wp][cat]['Data']['Pass']['mH_out'], 1.0))
+            eBkg += (1.0 / max(yields[wp][cat]['Data']['Fail']['mH_out'], 1.0))
             eBkg = nBkg * math.sqrt(eBkg)
 
             print('%s %s S/10 = %.3f, B = %.2f +/- %.2f, S/B = %.3f +/- %.3f, S/sqrt(B+err) = %.3f, limit = %.4f' % \
