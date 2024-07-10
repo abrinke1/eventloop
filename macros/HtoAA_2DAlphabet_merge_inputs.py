@@ -16,43 +16,45 @@ YEAR     = '2018'
 MASSESH  = ['mass','msoft','pnet']
 MASSESA  = ['15', '30', '55']
 WP_CUTS  = ['WP40', 'WP60', 'WP80']
+DATE     = '2024_07_09'
 
 # BKGS = ['Wlv', 'TT1l']
 
 # CAT_OUT = 'LepHi'
 # CAT_INS = ['WlvHi', 'ttbblv', 'Zll']
+
 CAT_OUT = 'XXHi'
-CAT_INS = ['WlvHi', 'ttbblv', 'Zll', 'ZvvHi']
+CAT_INS = ['WlvHi', 'ttbblv', 'ttbll', 'ttbbll', 'Zll', 'ZvvHi']
 CATS_IN = {}
-CATS_IN['WlvHi']  = {}
-CATS_IN['WlvHi']['dir']   = '/afs/cern.ch/user/h/hboucham/public/2D_062324/'
+for cat in CAT_INS:
+    CATS_IN[cat] = {}
+CATS_IN['WlvHi']['dir']   = '/afs/cern.ch/user/h/hboucham/public/2D_1L_070924/'
 CATS_IN['WlvHi']['sigs']  = ['WHtoaato4b']
-CATS_IN['ttbblv'] = {}
-CATS_IN['ttbblv']['dir']  = '/afs/cern.ch/user/h/hboucham/public/2D_062324/'
+CATS_IN['ttbblv']['dir']  = '/afs/cern.ch/user/h/hboucham/public/2D_1L_070924/'
 CATS_IN['ttbblv']['sigs'] = ['ttHtoaato4b']
-CATS_IN['Zll']    = {}
-CATS_IN['Zll']['dir']     = '/afs/cern.ch/user/h/hboucham/public/2D_Alphabet_root_052424/'
+CATS_IN['ttbll']['dir']   = '/afs/cern.ch/user/h/hboucham/public/2D_2Ltt_070924/'
+CATS_IN['ttbll']['sigs']  = ['ttHtoaato4b']
+CATS_IN['ttbbll']['dir']  = '/afs/cern.ch/user/h/hboucham/public/2D_2Ltt_070924/'
+CATS_IN['ttbbll']['sigs'] = ['ttHtoaato4b']
+CATS_IN['Zll']['dir']     = '/afs/cern.ch/user/h/hboucham/public/2D_2LZ_070924/'
 CATS_IN['Zll']['sigs']    = ['ZHtoaato4b']
-CATS_IN['ZvvHi']  = {}
 CATS_IN['ZvvHi']['dir']   = '/eos/cms/store/user/ssawant/htoaa/analysis/20240626_Zvv_METDataset_2/2018/2DAlphabet_inputFiles/ZvvHi/'
 CATS_IN['ZvvHi']['sigs']  = ['ZHtoaato4b']
-
 
 # CAT_OUT = 'XXLo'
 # CAT_INS = ['WlvLo', 'ttblv', 'ZvvLo']
 # CATS_IN = {}
-# CATS_IN['WlvLo']  = {}
-# CATS_IN['WlvLo']['dir']   = '/afs/cern.ch/user/h/hboucham/public/2D_062324/'
+# for cat in CAT_INS:
+#     CATS_IN[cat] = {}
+# CATS_IN['WlvLo']['dir']   = '/afs/cern.ch/user/h/hboucham/public/2D_1L_070924/'
 # CATS_IN['WlvLo']['sigs']  = ['WHtoaato4b']
-# CATS_IN['ttblv'] = {}
-# CATS_IN['ttblv']['dir']  = '/afs/cern.ch/user/h/hboucham/public/2D_062324/'
+# CATS_IN['ttblv']['dir']  = '/afs/cern.ch/user/h/hboucham/public/2D_1L_070924/'
 # CATS_IN['ttblv']['sigs'] = ['ttHtoaato4b']
-# CATS_IN['ZvvLo']  = {}
 # CATS_IN['ZvvLo']['dir']   = '/eos/cms/store/user/ssawant/htoaa/analysis/20240626_Zvv_METDataset_2/2018/2DAlphabet_inputFiles/ZvvLo/'
 # CATS_IN['ZvvLo']['sigs']  = ['ZHtoaato4b']
 
 
-OUT_DIR  = 'plots/HtoAA_2DAlphabet_merge_inputs_%s/' % CAT_OUT
+OUT_DIR  = 'plots/HtoAA_2DAlphabet_merge_inputs_%s/%s/' % (CAT_OUT, DATE)
 
 def main():
 

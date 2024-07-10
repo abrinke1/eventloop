@@ -30,10 +30,10 @@ BKGS = []  ## Could do MC-based background estimate, currently not implemented
 # CATS    = ['VBFjj']
 # WP_CUTS = ['WP40', 'WP60']
 
-IN_DIR   = '/afs/cern.ch/user/h/hboucham/public/2D_1L_070924/' ## Single lepton
-SIGS     = ['WHtoaato4b', 'ttHtoaato4b']
-CATS     = ['WlvLo', 'WlvHi', 'ttblv', 'ttbblv']
-WP_CUTS  = ['WP60']
+# IN_DIR   = '/afs/cern.ch/user/h/hboucham/public/2D_1L_070924/' ## Single lepton
+# SIGS     = ['WHtoaato4b', 'ttHtoaato4b']
+# CATS     = ['WlvLo', 'WlvHi', 'ttblv', 'ttbblv']
+# WP_CUTS  = ['WP60']
 
 # IN_DIR   = '/afs/cern.ch/user/h/hboucham/public/2D_2Ltt_070924/' ## Double lepton
 # SIGS     = ['ttHtoaato4b']
@@ -51,11 +51,15 @@ WP_CUTS  = ['WP60']
 # CATS    = ['Vjj']
 # WP_CUTS = ['WP40', 'WP60']
 
-# # IN_DIR  = '/eos/cms/store/user/ssawant/htoaa/analysis/20240529_ZH_4b2nu_for2DAlphabet/2018/2DAlphabet_inputFiles/'
 # IN_DIR  = '/eos/cms/store/user/ssawant/htoaa/analysis/20240626_Zvv_METDataset_2/2018/2DAlphabet_inputFiles/ZvvLo/'
 # SIGS    = ['ZHtoaato4b']
 # CATS    = ['ZvvLo']
 # WP_CUTS = ['WP40', 'WP60']
+
+IN_DIR  = '/eos/cms/store/user/ssawant/htoaa/analysis/20240626_Zvv_METDataset_2/2018/2DAlphabet_inputFiles/ZvvHi/'
+SIGS    = ['ZHtoaato4b']
+CATS    = ['ZvvHi']
+WP_CUTS = ['WP40', 'WP60']
 
 
 # OUT_FILE = 'plots/HtoAA_StoB_est.root'
