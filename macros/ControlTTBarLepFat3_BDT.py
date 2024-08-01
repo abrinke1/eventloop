@@ -1,6 +1,5 @@
 #! /usr/bin/env python
-
-## Plots for ttbar --> lepton + AK8 jet control region
+## Plots and BDT inputs for ttbar --> lepton + AK8 jet control region
 
 import os
 import sys
@@ -11,26 +10,30 @@ import ROOT as R
 R.gROOT.SetBatch(True)  ## Don't display histograms or canvases when drawn
 
 ## User configuration
-PRT_EVT = 1000     ## Print every Nth event
-MAX_EVT = 100000   ## Number of events to process
+PRT_EVT = 10000    ## Print every Nth event
+MAX_EVT = -1       ## Number of events to process
 VERBOSE = False    ## Verbose print-outs
 LUMI    = 59830    ## 2018 integrated lumi (pb-1), certified "Good"
 
-PRT_BDT_IN   = False   ## Print input variables for BDT training in CSV format  
-SKIM_H4B     = True    ## Use input files from skims/Hto4b_0p8/
+PRT_BDT_IN   = True    ## Print input variables for BDT training in CSV format
+SKIM_H4B     = False   ## Use input files from skims/Hto4b_0p8/
 CUT_GEN_BBQQ = 0       ## 4 for BBQQ, 3 for BBQ, 2 for BB, 1 for B, 0 for none, -1 for not-BB
-CUT_MASS     = 140     ## Minimum AK8 jet PF mass
-CUT_MSOFT    = 20      ## Minimum AK8 jet soft-drop mass
-CUT_DR_LJ    = -1      ## Maximum dR(AK8, lepton)
-CUT_PT_LVJ   = 0       ## Minimum pT(AK8, lep, MET)
-CUT_MT_LVJ   = 700     ## Maximum MT(AK8, lep, MET)
-CUT_HT_ISR   = 300     ## Minimum HT(AK4 jets)
-CUT_PT_ISR   = 250     ## Minimum pT(AK4 jets)
-CUT_LFRAC    = 0.6     ## Minimum lepton/AK4 jet pT ratio for events with dR(lep,jet) < 0.4
+CUT_MASS     = 140     ## Minimum AK8 jet PF mass         - Was 140, use 150 for "tight" selection
+CUT_MSOFT    = 50      ## Minimum AK8 jet soft-drop mass  - Was 20, tighten to 50 as per analysis
+CUT_PT_J     = 350     ## Minimum AK8 jet pT              - Default 0, use 350 for "tight" selection
+CUT_DR_LJ    = 0       ## Maximum dR(AK8, lepton)         - Default 0, use 2.35 for "tight" selection
+CUT_PT_LVJ   = 250     ## Minimum pT(AK8, lep, MET)       - Default 0, use 250 for "tight" selection
+CUT_MT_LVJ   = 0       ## Maximum MT(AK8, lep, MET)       - Default 0, use 700 for "tight" selection
+CUT_M_LVJ    = 1000    ## Maximum mass(AK8, lep, MET)     - Default 0, use 1000 for "tight" selection
+CUT_HT_ISR   = 0       ## Minimum HT(AK4 jets)            - Default 0, use 300 for "tight" selection
+CUT_PT_ISR   = 0       ## Minimum pT(AK4 jets)            - Default 0, use 250 for "tight" selection
+CUT_LFRAC    = 0.4     ## Minimum lepton/AK4 jet pT ratio for events with dR(lep,jet) < 0.4 - Use 0.4
+CUT_LBVETO   = True    ## Veto events where deepB or flavB tagged AK4 jet overlaps lepton
 LABEL = 'TTToSemiLep'
 #LABEL = 'TTTo2L2Nu'
 #LABEL = 'WToLNu_HT-600'
 CAT   = 'SingleLep'
+PART  = -1             ## Split processing into parts (out of 10 or 50)
 
 if len(sys.argv) > 1:
     print('\nLABEL changed from %s to %s' % (LABEL, str(sys.argv[1])))
@@ -41,11 +44,17 @@ if len(sys.argv) > 2:
 if len(sys.argv) > 3:
     print('\nCUT_GEN_BBQQ changed from %d to %d' % (CUT_GEN_BBQQ, int(sys.argv[3])))
     CUT_GEN_BBQQ = int(sys.argv[3])
+if len(sys.argv) > 4:
+    print('\nPART changed from %d to %d' % (PART, int(sys.argv[4])))
+    PART = int(sys.argv[4])
+
 
 ## Small function to both fill histogram and print out value for BDT
 #BDT_VARS = ['pt_lep','pt_fat','pt_MET','pt_ISRs','pt_lJ','pt_lv','pt_lvJ','pt_jet1','pt_jet2','pt_jet3','dR_lep_fat','dR_lJ_ISR','dEtaS_lep_fat','dPhi_lep_fat','dPhi_lep_MET','dPhi_lvJ_ISR','mass_fat','mass_lJ','HT_ISRs','HT_lvJ','msoft_fat','deepB_max_jet','flavB_max_jet','dR_fat_jet_min']
 #BDT_VARS = ['msoft_fat','mass_fat','mass_lJ','dR_lep_fat','dEtaS_lep_fat','dPhi_lep_fat','deepB_max_jet','flavB_max_jet','dR_lJ_deepB_max','dR_lJ_flavB_max']
-BDT_VARS = ['pt_lep','pt_fat','pt_MET','pt_ISRs','pt_lJ','pt_lJ_ISR','pt_lJ_ISRs','pt_lv','pt_lvJ','pt_lvJ_ISR','pt_lvJ_ISRs','pt_jet1','pt_jet2','pt_jet3','eta_lep','eta_fat','eta_lJ','eta_jet1','eta_jet2','eta_jet3','etaA_lep','etaA_fat','etaA_lJ','etaA_jet1','etaA_jet2','etaA_jet3','etaS_lep','etaS_fat','etaS_jet1','etaS_jet2','etaS_jet3','lepjet_frac','lepjet_dR','dR_lep_fat','dR_lJ_ISR','dR_lJ_ISRs','dEta_lep_fat','dEtaS_lep_fat','dPhi_lep_fat','dPhi_lep_MET','dPhi_lJ_MET','dPhi_lJ_ISR','dPhi_lJ_ISRs','dPhi_lv_fat','dPhi_lvJ_ISR','dPhi_lvJ_ISRs','mass_fat','mass_lJ','mass_lJ_ISR','mass_lJ_ISRs','mass_lvJ','mass_lvJ_ISR','mass_lvJ_ISRs','MT_lJ_ISR','MT_lJ_ISRs','MT_lv','MT_lvJ','MT_lvJ_ISR','MT_lvJ_ISRs','HT_ISRs','HT_lJ','HT_lJ_ISR','HT_lJ_ISRs','HT_lv','HT_lvJ','HT_lvJ_ISR','HT_lvJ_ISRs','nFat','nJet','msoft_fat','deepB_max_jet','flavB_max_jet','dR_fat_jet_min','dR_lJ_jet_min','dR_fat_deepB_max','dR_lJ_deepB_max','dR_fat_flavB_max','dR_lJ_flavB_max','jet_pt_near_fat','jet_pt_near_lJ','deepB_near_fat','deepB_near_lJ','flavB_near_fat','flavB_near_lJ','bb_DDBvLV2_fat','bb_PNet_Xbb_fat','bb_deep_ZHbb_fat','bb_batg_Hbb_fat','Hto4b_Haa4b_fat','Hto4b_Haa34b_fat','wgt']
+## Prior to 2024.07.31, did not contain: lepjet_pt, lepjet_deepB, lepjet_flavB, dR_lep_jet_min, jet_pt_near_lep, deepB_near_lep, flavB_near_lep, nBHadrons, nBinJ
+BDT_VARS = ['pt_lep','pt_fat','pt_MET','pt_ISRs','pt_lJ','pt_lJ_ISR','pt_lJ_ISRs','pt_lv','pt_lvJ','pt_lvJ_ISR','pt_lvJ_ISRs','pt_jet1','pt_jet2','pt_jet3','eta_lep','eta_fat','eta_lJ','eta_jet1','eta_jet2','eta_jet3','etaA_lep','etaA_fat','etaA_lJ','etaA_jet1','etaA_jet2','etaA_jet3','etaS_lep','etaS_fat','etaS_jet1','etaS_jet2','etaS_jet3','lepjet_frac','lepjet_pt','lepjet_dR','lepjet_deepB','lepjet_flavB','dR_lep_fat','dR_lJ_ISR','dR_lJ_ISRs','dEta_lep_fat','dEtaS_lep_fat','dPhi_lep_fat','dPhi_lep_MET','dPhi_lJ_MET','dPhi_lJ_ISR','dPhi_lJ_ISRs','dPhi_lv_fat','dPhi_lvJ_ISR','dPhi_lvJ_ISRs','mass_fat','mass_lJ','mass_lJ_ISR','mass_lJ_ISRs','mass_lvJ','mass_lvJ_ISR','mass_lvJ_ISRs','MT_lJ_ISR','MT_lJ_ISRs','MT_lv','MT_lvJ','MT_lvJ_ISR','MT_lvJ_ISRs','HT_ISRs','HT_lJ','HT_lJ_ISR','HT_lJ_ISRs','HT_lv','HT_lvJ','HT_lvJ_ISR','HT_lvJ_ISRs','nFat','nJet','msoft_fat','deepB_max_jet','flavB_max_jet','dR_fat_jet_min','dR_lep_jet_min','dR_lJ_jet_min','dR_fat_deepB_max','dR_lJ_deepB_max','dR_fat_flavB_max','dR_lJ_flavB_max','jet_pt_near_fat','jet_pt_near_lep','jet_pt_near_lJ','deepB_near_fat','deepB_near_lep','deepB_near_lJ','flavB_near_fat','flavB_near_lep','flavB_near_lJ','bb_DDBvLV2_fat','bb_PNet_Xbb_fat','bb_deep_ZHbb_fat','bb_batg_Hbb_fat','Hto4b_Haa4b_fat','Hto4b_Haa34b_fat','nBHadrons','nBinJ','wgt']
+
 
 def FillX(csv, cat, hists, name, val, wgt):
     hists['%s_0'  % (name     )].Fill(val, wgt)  ## Fill inclusive histogram
@@ -61,29 +70,40 @@ def main():
     print('\nInside ControlTTBarLepFat3\n')
 
     in_file_names = []
-    in_dir = '/eos/cms/store/group/phys_susy/HToaaTo4b/NanoAOD/2018/'
-    if LABEL == 'SingleMuon':  in_dir += 'data/PNet_v1_2023_10_06/Run2018D-UL2018_MiniAODv2_GT36-v2/SingleMuon/'
-    if LABEL == 'EGamma':      in_dir += 'data/PNet_v1_2023_10_06/Run2018D-UL2018_MiniAODv2_GT36-v3/EGamma/'
-    if LABEL == 'TTToSemiLep': in_dir += 'MC/PNet_v1_2023_10_06/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/'
-    if LABEL == 'TTTo2L2Nu':   in_dir += 'MC/PNet_v1_2023_10_06/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/'
-    if LABEL == 'ST_s_lep':    in_dir += 'MC/PNet_v1_2023_10_06/ST_s-channel_4f_leptonDecays_TuneCP5_13TeV-amcatnlo-pythia8/'
-    if LABEL == 'ST_tW_top':   in_dir += 'MC/PNet_v1_2023_10_06/ST_tW_top_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/'
-    if LABEL == 'ST_tW_anti':  in_dir += 'MC/PNet_v1_2023_10_06/ST_tW_antitop_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/'
-    if LABEL == 'ST_t_top':    in_dir += 'MC/PNet_v1_2023_10_06/ST_t-channel_top_5f_InclusiveDecays_TuneCP5_13TeV-powheg-pythia8/'
-    if LABEL == 'ST_t_anti':   in_dir += 'MC/PNet_v1_2023_10_06/ST_t-channel_antitop_5f_InclusiveDecays_TuneCP5_13TeV-powheg-pythia8/'
-    if LABEL == 'WToLNu_NLO':  in_dir += 'MC/PNet_v1_2023_10_06/WJetsToLNu_TuneCP5_13TeV-amcatnloFXFX-pythia8/'
-    if LABEL == 'WToLNu_HT-600': in_dir += 'MC/PNet_v1_2023_10_06/WJetsToLNu_HT-600To800_TuneCP5_13TeV-madgraphMLM-pythia8/'
-    if LABEL == 'WW':          in_dir += 'MC/PNet_v1_2023_10_06/WW_TuneCP5_13TeV-pythia8/'
-    if LABEL == 'WZ':          in_dir += 'MC/PNet_v1_2023_10_06/WZ_TuneCP5_13TeV-pythia8/'
+    in_dir  = '/eos/cms/store/group/phys_susy/HToaaTo4b/NanoAOD/2018/'
+    in_dirD = in_dir+'data/PNet_v1_2023_10_06/'
+    in_dirM = in_dir+'MC/PNet_v1_2023_10_06/'
+    if LABEL == 'SingleMuon':    in_dirD += 'Run2018D-UL2018_MiniAODv2_GT36-v2/SingleMuon/'
+    if LABEL == 'EGamma':        in_dirD += 'Run2018D-UL2018_MiniAODv2_GT36-v3/EGamma/'
+    if LABEL == 'TTToSemiLep':   in_dirM += 'TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/'
+    if LABEL == 'TTTo2L2Nu':     in_dirM += 'TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/'
+    if LABEL == 'TTJets_1Lpos':  in_dirM += 'TTJets_SingleLeptFromT_TuneCP5_13TeV-madgraphMLM-pythia8/'
+    if LABEL == 'TTJets_1Lneg':  in_dirM += 'TTJets_SingleLeptFromTbar_TuneCP5_13TeV-madgraphMLM-pythia8/'
+    if LABEL == 'TTJets_2L2Nu':  in_dirM += 'TTJets_DiLept_TuneCP5_13TeV-madgraphMLM-pythia8/'
+    if LABEL == 'ST_s_lep':      in_dirM += 'ST_s-channel_4f_leptonDecays_TuneCP5_13TeV-amcatnlo-pythia8/'
+    if LABEL == 'ST_tW_top':     in_dirM += 'ST_tW_top_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/'
+    if LABEL == 'ST_tW_anti':    in_dirM += 'ST_tW_antitop_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/'
+    if LABEL == 'ST_t_top':      in_dirM += 'ST_t-channel_top_5f_InclusiveDecays_TuneCP5_13TeV-powheg-pythia8/'
+    if LABEL == 'ST_t_anti':     in_dirM += 'ST_t-channel_antitop_5f_InclusiveDecays_TuneCP5_13TeV-powheg-pythia8/'
+    if LABEL == 'WToLNu_NLO':    in_dirM += 'WJetsToLNu_TuneCP5_13TeV-amcatnloFXFX-pythia8/'
+    if 'WToLNu_HT-' in LABEL:    in_dirM += 'WJets%s_TuneCP5_13TeV-madgraphMLM-pythia8/' % (LABEL[1:])
+    if LABEL == 'WW':            in_dirM += 'WW_TuneCP5_13TeV-pythia8/'
+    if LABEL == 'WZ':            in_dirM += 'WZ_TuneCP5_13TeV-pythia8/'
     ## TTJets_Incl, TTJets_Incl_Had, TTJets_Incl_SemiLep, TTJets_Incl_2L2Nu
     ## ZJets_MG, ZJets_AMC, ST_tW_top, ST_tW_antitop, WW, WZ, ZZ
+    in_dir = (in_dirD if not in_dirD.endswith('10_06/') else (in_dirM if not in_dirM.endswith('10_06/') else 'NULL/'))
     if SKIM_H4B: in_dir += 'skims/Hto4b_0p8/'
     else:        in_dir += 'r1/'
 
     print('\nGetting input files from %s' % in_dir)
 
     isData  = ('/data/' in in_dir)
-    isTTBar = (LABEL.startswith('TTTo') or LABEL.startswith('TTJets')) 
+    isTTBar = (LABEL.startswith('TTTo') or LABEL.startswith('TTJets'))
+    isSTtW  = (LABEL.startswith('ST_tW'))
+
+    nParts = (50 if LABEL == 'TTToSemiLep' else 10)
+    if PART >= 0:
+        print('  * Only accessing part %d/%d' % (PART, nParts))
 
     if not LABEL.split('_')[0] in in_dir and not LABEL.split('_')[0] in in_dir.replace('Jets',''):
         print('\n\n***  TRIED TO APPLY LABEL %s TO DIRECTORY %s  ***' % (LABEL, in_dir))
@@ -94,14 +114,18 @@ def main():
         print('***  CORRECT? QUITTING!  ***')
         sys.exit()
 
+    f_count = 0
     for f_name in subprocess.check_output(['ls', in_dir], encoding='UTF-8').splitlines():
-        if not '.root' in str(f_name): continue
+        if not str(f_name).endswith('.root'): continue
+        f_count += 1
+        if PART >= 0 and ((f_count-1) % nParts) != PART: continue
         in_file_names.append(in_dir+f_name)
         print('Appending file: %s' % in_file_names[-1])
         if MAX_EVT > 0 and len(in_file_names)*50001*(1 + 19*(SKIM_H4B==0)) > MAX_EVT: break
 
     out_dir = 'plots/'
     out_file_str = out_dir+'ControlTTBarLepFat_%s_%s' % (CAT, LABEL)
+    if   PART >= 0:          out_file_str += ('_part%02d' % PART)
     if   SKIM_H4B:           out_file_str += '_Hto4b_0p8' 
     if   CUT_GEN_BBQQ == -1: out_file_str += '_noGenBB'
     elif CUT_GEN_BBQQ ==  1: out_file_str += '_GenB'
@@ -111,19 +135,22 @@ def main():
     else:                     out_file_str += '_GenAll'
     if CUT_MASS   > 0: out_file_str += ('_mass_%d'  % CUT_MASS)
     if CUT_MSOFT  > 0: out_file_str += ('_msoft_%d' % CUT_MSOFT)
+    if CUT_PT_J   > 0: out_file_str += ('_ptJ_%d'   % CUT_PT_J)
     if CUT_DR_LJ  > 0: out_file_str += ('_dRLJ_%d'  % (CUT_DR_LJ*100))
     if CUT_PT_LVJ > 0: out_file_str += ('_ptLVJ_%d' % CUT_PT_LVJ)
     if CUT_MT_LVJ > 0: out_file_str += ('_MtLVJ_%d' % CUT_MT_LVJ)
+    if CUT_M_LVJ  > 0: out_file_str += ('_massLVJ_%d' % CUT_M_LVJ)
     if CUT_HT_ISR > 0: out_file_str += ('_HtISR_%d' % CUT_HT_ISR)
     if CUT_PT_ISR > 0: out_file_str += ('_ptISR_%d' % CUT_PT_ISR)
     if CUT_LFRAC  > 0: out_file_str += ('_lfrac_%d' % (CUT_LFRAC*100))
+    if CUT_LBVETO    : out_file_str += ('_lbveto')
     if MAX_EVT    > 9999999: out_file_str += '_%dM' % (MAX_EVT / 1000000)
     elif MAX_EVT  >       0: out_file_str += '_%dk' % (MAX_EVT / 1000)
     # else:           out_file_str += '_1188k'
     out_file_str += '.root'
     out_file = R.TFile(out_file_str,'recreate')
     if PRT_BDT_IN:
-        bdt_file = open(out_file_str.replace('plots','csv').replace('.root','.csv'), 'w')
+        bdt_file = open(out_file_str.replace('plots','csv/2024_07_31').replace('.root','.csv'), 'w')
 
     chains = {}
     chains['Events'] = 0
@@ -177,9 +204,14 @@ def main():
     hst['nJet'] = R.TH1D('h_nJet', 'h_nJet', 17, -0.5, 16.5)
     hst['nMuInFat']  = R.TH1D('h_nMuInFat',  'h_nMuInFat',   6, -0.5,  5.5)
     hst['nEleInFat'] = R.TH1D('h_nEleInFat', 'h_nEleInFat',  6, -0.5,  5.5)
+    hst['nBHadrons'] = R.TH1D('h_nBHadrons', 'AK8 nBHadrons', 6, -0.5, 5.5)
+    hst['nBinJ']     = R.TH1D('h_nBinJ',     'GEN b from top in AK8', 4, -0.5, 3.5)
     hst['nQC_vs_B']  = R.TH2D('h_nQC_vs_B',  'h_nQC_vs_B',  4, -0.5, 3.5, 6, -0.5, 5.5)
     hst['nCh_vs_Bh'] = R.TH2D('h_nCh_vs_Bh', 'h_nCh_vs_Bh', 6, -0.5, 5.5, 9, -0.5, 8.5)
+    hst['nBh_vs_B']  = R.TH2D('h_nBh_vs_B',  'h_nBh_vs_B',  4, -0.5, 3.5, 6, -0.5, 5.5)
     hst['lepjet_frac_vs_dR'] = R.TH2D('h_lepjet_frac_vs_dR', 'h_lepjet_frac_vs_dR', 50, 0, 0.5, 55, 0, 1.1)
+    hst['lepjet_frac_vs_deepB'] = R.TH2D('h_lepjet_frac_vs_deepB', 'h_lepjet_frac_vs_deepB', 110, -0.1, 1.0, 55, 0, 1.1)
+    hst['lepjet_frac_vs_flavB'] = R.TH2D('h_lepjet_frac_vs_flavB', 'h_lepjet_frac_vs_flavB', 110, -0.1, 1.0, 55, 0, 1.1)
 
     hst['mu_mvaTTH']  = R.TH1D('h_mu_mvaTTH',  'h_mu_mvaTTH',  40, -1, 1)
     hst['ele_mvaTTH'] = R.TH1D('h_ele_mvaTTH', 'h_ele_mvaTTH', 40, -1, 1)
@@ -196,8 +228,11 @@ def main():
     hst['ele_SIP'] = R.TH1D('h_ele_SIP', 'h_ele_SIP', 16, 0, 8.0)
     hst['lep_SIP'] = R.TH1D('h_lep_SIP', 'h_lep_SIP', 16, 0, 8.0)
 
-    hst['lepjet_frac'] = R.TH1D('h_lepjet_frac', 'h_lepjet_frac', 110, 0, 1.1)
-    hst['lepjet_dR']   = R.TH1D('h_lepjet_dR',   'h_lepjet_dR',   50, 0, 0.5)
+    hst['lepjet_frac']  = R.TH1D('h_lepjet_frac',  'h_lepjet_frac',  110, 0, 1.1)
+    hst['lepjet_pt']    = R.TH1D('h_lepjet_pt',    'h_lepjet_pt',    200, 0, 1000)
+    hst['lepjet_dR']    = R.TH1D('h_lepjet_dR',    'h_lepjet_dR',    50, 0, 0.5)
+    hst['lepjet_deepB'] = R.TH1D('h_lepjet_deepB', 'h_lepjet_deepB', 110, -0.1, 1.0)
+    hst['lepjet_flavB'] = R.TH1D('h_lepjet_flavB', 'h_lepjet_flavB', 110, -0.1, 1.0)
     
     hst['msoft_fat'] = R.TH1D('h_msoft_fat', 'fat msoft', 100, 0, 500)
 
@@ -206,17 +241,21 @@ def main():
     hst['nSV_max_jet']   = R.TH1D('h_nSV_max_jet',   'Maximum AK4 jet # of secondary vertices', 7, -0.5, 6.5)
 
     hst['dR_fat_jet_min']   = R.TH1D('h_dR_fat_jet_min', 'Minimum dR(AK4, AK8)', 100, 0, 10)
+    hst['dR_lep_jet_min']   = R.TH1D('h_dR_lep_jet_min', 'Minimum dR(AK4, lep)', 100, 0, 10)
     hst['dR_lJ_jet_min']    = R.TH1D('h_dR_lJ_jet_min', 'Minimum dR(AK4, lep+AK8)', 100, 0, 10)
     hst['dR_fat_deepB_max'] = R.TH1D('h_dR_fat_deepB_max', 'dR(high deepB, AK8)', 100, 0, 10)
     hst['dR_lJ_deepB_max']  = R.TH1D('h_dR_lJ_deepB_max', 'dR(high deepB, lep+AK8)', 100, 0, 10)
     hst['dR_fat_flavB_max'] = R.TH1D('h_dR_fat_flavB_max', 'dR(high flavB, AK8)', 100, 0, 10)
     hst['dR_lJ_flavB_max']  = R.TH1D('h_dR_lJ_flavB_max', 'dR(high flavB, lep+AK8)', 100, 0, 10)
 
-    hst['jet_pt_near_fat'] = R.TH1D('h_jet_pt_near_fat', 'pT of AK4 nearest AK8', 60, 0, 300)
-    hst['jet_pt_near_lJ']  = R.TH1D('h_jet_pt_near_lJ', 'pT of AK4 nearest lep+AK8', 60, 0, 300)
+    hst['jet_pt_near_fat'] = R.TH1D('h_jet_pt_near_fat', 'pT of AK4 nearest AK8', 200, 0, 1000)
+    hst['jet_pt_near_lep'] = R.TH1D('h_jet_pt_near_lep', 'pT of AK4 nearest lep', 200, 0, 1000)
+    hst['jet_pt_near_lJ']  = R.TH1D('h_jet_pt_near_lJ', 'pT of AK4 nearest lep+AK8', 200, 0, 1000)
     hst['deepB_near_fat'] = R.TH1D('h_deepB_near_fat', 'deepB nearest AK8', 110, -0.1, 1.0)
+    hst['deepB_near_lep'] = R.TH1D('h_deepB_near_lep', 'deepB nearest lep', 110, -0.1, 1.0)
     hst['deepB_near_lJ']  = R.TH1D('h_deepB_near_lJ', 'deepB nearest lep+AK8', 110, -0.1, 1.0)
     hst['flavB_near_fat'] = R.TH1D('h_flavB_near_fat', 'flavB nearest AK8', 110, -0.1, 1.0)
+    hst['flavB_near_lep'] = R.TH1D('h_flavB_near_lep', 'flavB nearest lep', 110, -0.1, 1.0)
     hst['flavB_near_lJ']  = R.TH1D('h_flavB_near_lJ', 'flavB nearest lep+AK8', 110, -0.1, 1.0)
     
     hst['nSV_ISR']       = R.TH1D('h_nSV_ISR',  'ISR jet # of secondary vertices',   7, -0.5,  6.5)
@@ -247,6 +286,7 @@ def main():
     hst['wgt_wgt']  = R.TH1D('h_wgt_wgt',  'Event weights (weighted)',   2000, -10, 10.)
     hst['nPV']      = R.TH1D('h_nPV',      '# of PVs',      101, -0.5, 100.5)
     hst['nPV_good'] = R.TH1D('h_nPV_good', '# of good PVs', 101, -0.5, 100.5)
+    hst['LHE_HT']   = R.TH1D('h_LHE_HT',   'LHE H_{T}',     400,    0,  2000)
 
     ## Duplicate histograms for different categories
     new_hst = {}
@@ -274,6 +314,7 @@ def main():
     ch = chains['Events']  ## Shortcut expression
     ## Count passing events
     nPassPre   = 0
+    nPassNoise = 0
     nPassBtag  = 0
     nPassLep   = 0
     nPassMET   = 0
@@ -282,7 +323,7 @@ def main():
     nPassData  = 0
     nPassTrg   = 0
     nPassGen   = 0
-    nPassLepFrac = 0
+    nPassLepFracB = 0
     for iEvt in range(nEntries):
 
         ch.GetEntry(iEvt)
@@ -305,7 +346,7 @@ def main():
         for iFat in range(ch.nFatJet):
             if ch.FatJet_mass[iFat]      < CUT_MASS:  continue
             if ch.FatJet_msoftdrop[iFat] < CUT_MSOFT: continue
-            if      ch.FatJet_pt [iFat]  < 170: continue
+            if      ch.FatJet_pt [iFat]  < CUT_PT_J:  continue
             if  abs(ch.FatJet_eta[iFat]) > 2.4: continue
             if ch.FatJet_jetId[iFat]     < 6:   continue
             hasGoodFat = True
@@ -348,8 +389,9 @@ def main():
         nGenC   = 0
         nGenQ   = 0
         lastPdgID = -999
+        genLepVec = R.TLorentzVector()
         genLepMoms = []
-        for iGen in range(-1 if not isTTBar else ch.nGenPart):
+        for iGen in range(ch.nGenPart if (isTTBar or isSTtW) else -1):
             pdgID = ch.GenPart_pdgId[iGen]
             ## Particle must be a charged lepton or quark
             if not abs(pdgID) in [1,2,3,4,5,11,13,15]: continue
@@ -373,6 +415,7 @@ def main():
                 else : genLepMoms.append(iMom)
                 nGenLep += 1
                 lastPdgID = pdgID
+                genLepVec = iVec
             ## Count quarks from W decay
             elif abs(pdgID) == 4:
                 nGenC += 1
@@ -385,16 +428,16 @@ def main():
         ## End loop: for iGen in range(-1 if not isTTBar else ch.nGenPart)
         if nGenLep > 2:
             print('\n*** Super-weird event!!! LS = %d, event = %d has %d leptons from W decay! ***\n' % (ch.luminosityBlock, ch.event, nGenLep))
-        if 'TTToSemiLep' in LABEL and nGenLep != 1:
+        if ('TTToSemiLep' in LABEL or 'TTJets_1L' in LABEL) and nGenLep != 1:
             print('\n*** Super-weird event!!! LS = %d, event = %d has %d leptons from W decay! ***\n' % (ch.luminosityBlock, ch.event, nGenLep))
-            sys.exit()
-        if 'TTTo2L2Nu' in LABEL and nGenLep != 2:
+            # sys.exit()
+        if ('TTTo2L2Nu' in LABEL or 'TTJets_2L2Nu' in LABEL) and nGenLep != 2:
             print('\n*** Super-weird event!!! LS = %d, event = %d has %d leptons from W decay! ***\n' % (ch.luminosityBlock, ch.event, nGenLep))
-            sys.exit()
+            # sys.exit()
         # print('Event has %d leptons, %d charm, and %d light-flavor quarks from W decay' % (nGenLep, nGenC, nGenQ))
 
         ## Check that event *has* GEN quarks from W decay
-        if 'TTToSemiLep' in LABEL and len(cVecs) + len(qVecs) < (CUT_GEN_BBQQ - 2):
+        if ('TTToSemiLep' in LABEL or 'TTJets_1L' in LABEL) and len(cVecs) + len(qVecs) < (CUT_GEN_BBQQ - 2):
             print('\n*** Super-weird event!!! LS = %d, event = %d has %d quarks from W decay! ***\n' % (ch.luminosityBlock, ch.event, nGenC+nGenQ))
 
         ## For inclusive ttbar sample, separate into di-lepton, semi-leptonic, and hadronic samples
@@ -485,15 +528,18 @@ def main():
 
         if VERBOSE: print('  * Pass GEN_BBQQ cuts')
 
-        ## Find muon(s) passing cuts (following HIG-21-002, AN-2020/032 Table 7 on p. 18)
+        ## Find muon(s) passing cuts
+        ## Previously following HIG-21-002, AN-2020/032 Table 7 on p. 18
+        ##   * mvaTTH > 0.5, mediumId == 1, miniPFRelIso_all < 0.4, sip3d < 8, dxy < 0.05, dz < 0.1
+        ## Updated to https://indico.cern.ch/event/1430644/#2-update-on-higgs-aa-4b-booste
         for iMu in range(ch.nMuon):
-            if           ch.Muon_mvaTTH[iMu]  < 0.5 : continue
-            if              ch.Muon_pt [iMu]  < 10. : continue
+            if               ch.Muon_pt[iMu]  < 10. : continue
             if          abs(ch.Muon_eta[iMu]) > 2.4 : continue
-            if         ch.Muon_mediumId[iMu]  != 1  : continue
-            if ch.Muon_miniPFRelIso_all[iMu]  > 0.40: continue
-            if        abs(ch.Muon_sip3d[iMu]) > 8.0 : continue
-            if          abs(ch.Muon_dxy[iMu]) > 0.05: continue
+            if ch.Muon_miniPFRelIso_all[iMu]  > 0.10: continue  ## Manual implementation of miniIsoId >= 3
+            if   ch.Muon_mediumPromptId[iMu]  < 1   :
+                if           ch.Muon_pt[iMu]  < 53. : continue
+                if     ch.Muon_highPtId[iMu]  < 1   : continue
+            if          abs(ch.Muon_dxy[iMu]) > 0.02: continue
             if           abs(ch.Muon_dz[iMu]) > 0.10: continue
 
             ## Save the selected muon
@@ -506,16 +552,18 @@ def main():
             muIdxs .append(iMu)
         ## End loop: for iMu in range(ch.nMuon)
 
-        ## Find electron(s) passing cuts (following HIG-21-002, AN-2020/032 Table 6 on p. 17)
+        ## Find electron(s) passing cuts
+        ## Previously following HIG-21-002, AN-2020/032 Table 6 on p. 17
+        ##   * mvaTTH > 0.3, mvaFall17V2noIso_WP90 == 1, miniPFRelIso_all < 0.4, sip3d < 8, dxy < 0.05, dz < 0.1
+        ## Updated to https://indico.cern.ch/event/1430644/#2-update-on-higgs-aa-4b-booste
         for iEle in range(ch.nElectron):
-            if                ch.Electron_mvaTTH[iEle]  < 0.3 : continue
             if                   ch.Electron_pt [iEle]  < 10. : continue
             if               abs(ch.Electron_eta[iEle]) > 2.5 : continue
-            if ch.Electron_mvaFall17V2noIso_WP90[iEle]  != 1  : continue
-            if      ch.Electron_miniPFRelIso_all[iEle]  > 0.40: continue
-            if             abs(ch.Electron_sip3d[iEle]) > 8.0 : continue
-            if               abs(ch.Electron_dxy[iEle]) > 0.05: continue
-            if                abs(ch.Electron_dz[iEle]) > 0.10: continue
+            if abs(abs(ch.Electron_eta[iEle]) - 1.505) < 0.065: continue  ## Veto 1.44 - 1.57
+            if    ch.Electron_mvaFall17V2Iso_WPL[iEle]  < 1   : continue
+            if   ch.Electron_mvaFall17V2Iso_WP90[iEle]  < 1   :
+                if                ch.Electron_pt[iEle]  < 35. : continue
+                if     ch.Electron_cutBased_HEEP[iEle]  < 1   : continue
 
             ## Save the selected electron
             eleVec  = R.TLorentzVector()
@@ -527,22 +575,33 @@ def main():
             eleIdxs .append(iEle)
         ## End loop: for iEle in range(ch.nElectron)
 
-
         ## Only keep events with exactly one selected lepton
         if len(muIdxs) + len(eleIdxs) != 1: continue
-        if VERBOSE: print('  * Pass len(muIdxs) + len(eleIdxs) != 1 cut')
+        if CAT == 'SingleMu' and len(muIdxs)  != 1: continue
+        if CAT == 'SingleEG' and len(eleIdxs) != 1: continue
+        if VERBOSE: print('  * Pass len(muIdxs) and len(eleIdxs) cut')
+
 
         ## Define lepton flavor category event-by-event
+        ## Also apply tighter selection cuts for leading lepton, following:
+        ## https://indico.cern.ch/event/1430644/#2-update-on-higgs-aa-4b-booste
         if   len(muIdxs)  > 0:
             LepCat = 'SingleMu'
             xMu = muIdxs[0]
             lepVecs = muVecs
             lepVecTs = muVecTs
+            if ch.Muon_pt[xMu] < 26. : continue
         elif len(eleIdxs) > 0:
             LepCat = 'SingleEG'
             xEle = eleIdxs[0]
             lepVecs  = eleVecs
             lepVecTs = eleVecTs
+            if                  ch.Electron_pt[xEle] < 35. : continue
+            if ch.Electron_mvaFall17V2Iso_WP90[xEle] < 1   : continue
+            if ch.Electron_mvaFall17V2Iso_WP80[xEle] < 1   :
+                if   ch.Electron_cutBased_HEEP[xEle] < 1   : continue
+            if            abs(ch.Electron_dxy[xEle]) > 0.02: continue
+            if            abs(ch.Electron_dz[xEle])  > 0.10: continue
 
         ## Store MET vector (transverse component only)
         metVecT = R.TLorentzVector()
@@ -550,9 +609,9 @@ def main():
         
         ## Find AK8 jet(s) passing cuts
         for iFat in range(ch.nFatJet):
-            if      ch.FatJet_mass[iFat]  < CUT_MASS: continue
+            if      ch.FatJet_mass[iFat]  < CUT_MASS:  continue
             if ch.FatJet_msoftdrop[iFat]  < CUT_MSOFT: continue
-            if        ch.FatJet_pt[iFat]  < 170: continue
+            if        ch.FatJet_pt[iFat]  < CUT_PT_J:  continue
             if   abs(ch.FatJet_eta[iFat]) > 2.4: continue
             if     ch.FatJet_jetId[iFat]  <   6: continue
             ## Save 4-vectors of passing AK8 jets
@@ -562,8 +621,8 @@ def main():
             fatVec .SetPtEtaPhiM( ch.FatJet_pt[iFat], ch.FatJet_eta[iFat], ch.FatJet_phi[iFat], ch.FatJet_mass[iFat] )
             fatVecT.SetPtEtaPhiM( ch.FatJet_pt[iFat],                   0, ch.FatJet_phi[iFat], ch.FatJet_mass[iFat] )
             ## Skip jets which overlap selected leptons
-            if fatVec.DeltaR(lepVecs[0]) < 0.8: continue
-            if VERBOSE: print('    - Passed fatVec.DeltaR(lepVecs[0]) < 0.8 cut')
+            if fatVec.DeltaR(lepVecs[0]) < 0.80: continue
+            if VERBOSE: print('    - Passed fatVec.DeltaR(lepVecs[0]) < 0.80 cut')
             ## Skip jets which are too far from selected lepton
             if fatVec.DeltaR(lepVecs[0]) > CUT_DR_LJ and CUT_DR_LJ > 0: continue
             if VERBOSE: print('    - Passed fatVec.DeltaR(lepVecs[0]) > CUT_DR_LJ cut')
@@ -601,9 +660,9 @@ def main():
             ## Count selected leptons overlapping selected AK8 jet
             muInFat,eleInFat = (0,0)
             for muVec in muVecs:
-                if fatVec.DeltaR(muVec) < 0.8: muInFat += 1
+                if fatVec.DeltaR(muVec) < 0.80: muInFat += 1
             for eleVec in eleVecs:
-                if fatVec.DeltaR(eleVec) < 0.8: eleInFat += 1
+                if fatVec.DeltaR(eleVec) < 0.80: eleInFat += 1
 
             ## Shortcut 4-vectors for multi-object quantities
             lJ_vec  = lepVecs [0] + fatVec
@@ -636,15 +695,21 @@ def main():
             ## Store AK4 jets not matched to AK8 jet
             max_deepB = -9.99
             max_flavB = -9.99
+            lepjet_deepB = -9.99
+            lepjet_flavB = -9.99
             deepB_vec = R.TLorentzVector()
             flavB_vec = R.TLorentzVector()
             near_fat_idx = -99
+            near_lep_idx = -99
             near_lJ_idx  = -99
+            near_bOut_idx = -99
             near_fat_vec = R.TLorentzVector()
+            near_lep_vec = R.TLorentzVector()
             near_lJ_vec  = R.TLorentzVector()
+            near_bOut_vec  = R.TLorentzVector()
             for iJet in range(ch.nJet):
-                if      ch.Jet_pt [iJet]  <  25: continue
-                if  abs(ch.Jet_eta[iJet]) > 4.7: continue
+                if      ch.Jet_pt [iJet]  <  30.0: continue
+                # if  abs(ch.Jet_eta[iJet]) > 4.7: continue
                 ## Tight jet ID: https://twiki.cern.ch/twiki/bin/view/CMS/JetID13TeVUL
                 ## PhysicsTools/NanoAOD/python/jets_cff.py
                 ## Jet ID flags bit1 is loose, bit2 is tight, bit3 is tightLepVeto
@@ -661,9 +726,15 @@ def main():
                 jetVec .SetPtEtaPhiM( ch.Jet_pt[iJet], ch.Jet_eta[iJet], ch.Jet_phi[iJet], ch.Jet_mass[iJet] )
                 jetVecT.SetPtEtaPhiM( ch.Jet_pt[iJet],                0, ch.Jet_phi[iJet], ch.Jet_mass[iJet] )
                 ## Don't allow overlap with muon, electron, or AK8 jet
-                if jetVec.DeltaR(fatVec) < 0.8: continue
-                if jetVec.DeltaR(lepVecs[0]) < 0.4:
-                    jlepVecs.append(jetVec)
+                if jetVec.DeltaR(fatVec) < 0.80: continue
+                if jetVec.DeltaR(lepVecs[0]) < 0.40:
+                    if (jetVec.Pt() - lepVecs[0].Pt()) > 30.0:  ## Require jet-only pT > 30
+                        jlepVecs.append(jetVec)
+                        if abs(jetVec.Eta()) < 2.4:
+                            lepjet_deepB = max(lepjet_deepB, ch.Jet_btagDeepB[iJet])
+                            lepjet_flavB = max(lepjet_flavB, ch.Jet_btagDeepFlavB[iJet])
+                            continue
+                        continue
                     continue
                 jetIdxs .append(iJet)
                 jetVecs .append(jetVec)
@@ -690,9 +761,17 @@ def main():
                 if near_fat_idx < 0 or jetVec.DeltaR(fatVec) < near_fat_vec.DeltaR(fatVec):
                     near_fat_idx = iJet
                     near_fat_vec = jetVec
+                if near_lep_idx < 0 or jetVec.DeltaR(lepVecs[0]) < near_lep_vec.DeltaR(lepVecs[0]):
+                    near_lep_idx = iJet
+                    near_lep_vec = jetVec
                 if near_lJ_idx < 0 or jetVec.DeltaR(lJ_vec) < near_lJ_vec.DeltaR(lJ_vec):
                     near_lJ_idx = iJet
                     near_lJ_vec = jetVec
+                if isTTBar:
+                    bOut_vec = bVecs[0] if bVecs[0].DeltaR(fatVec) > bVecs[1].DeltaR(fatVec) else bVecs[1]
+                    if near_bOut_idx < 0 or jetVec.DeltaR(bOut_vec) < near_bOut_vec.DeltaR(bOut_vec):
+                        near_bOut_idx = iJet
+                        near_bOut_vec = jetVec
 
                 ## Count matched secondary vertices
                 nSV_jet = 0
@@ -713,9 +792,22 @@ def main():
             ##########################
             nPassPre += 1
 
-            ## No double-medium b-tagged AK4 jet
-            if max_deepB > DeepB['M'] and max_flavB > FlavB['M']: continue
+            ## Apply MET noise filters
+            if not (ch.Flag_goodVertices and ch.Flag_globalSuperTightHalo2016Filter and \
+               ch.Flag_HBHENoiseFilter and ch.Flag_HBHENoiseIsoFilter and ch.Flag_eeBadScFilter and \
+               ch.Flag_BadPFMuonFilter and ch.Flag_BadPFMuonDzFilter and \
+               ch.Flag_ecalBadCalibFilter and ch.Flag_EcalDeadCellTriggerPrimitiveFilter): continue
+            nPassNoise += 1
+
+            ## No medium b-tagged AK4 jet (was using both deepB and flavB, switch to just flavB)
+            # if max_deepB > DeepB['M'] and max_flavB > FlavB['M']: continue
+            if max_flavB > FlavB['M']: continue
             nPassBtag += 1
+            if near_lep_idx >= 0 and abs(ch.Jet_eta[near_lep_idx]) < 2.4 and \
+               (ch.Jet_btagDeepFlavB[near_lep_idx] > min(FlavB['M'], max_flavB)):
+                print('\n\n***  WEIRD ERROR!!! flavB_near_lep = %.4f, max_flavB = %.4f! ***' % (ch.Jet_btagDeepFlavB[near_lep_idx], max_flavB))
+                print('LS = %d, event = %d, near_lep_idx = %d' % (ch.luminosityBlock, ch.event, near_lep_idx))
+                sys.exit()
 
             ## Lepton pT cuts to match single lepton triggers
             if lepVecs[0].Pt() < 25: continue
@@ -728,6 +820,7 @@ def main():
             # ## Full system kinematic selection cuts
             if lvJ_vec.Pt() < CUT_PT_LVJ and CUT_PT_LVJ > 0: continue
             if lvJ_vecT.M() > CUT_MT_LVJ and CUT_MT_LVJ > 0: continue
+            if lvJ_vec.M()  > CUT_M_LVJ  and CUT_M_LVJ  > 0: continue
             if isrs_HT      < CUT_HT_ISR and CUT_HT_ISR > 0: continue
             if isrsVec.Pt() < CUT_PT_ISR and CUT_PT_ISR > 0: continue
             nPassKin += 1
@@ -742,9 +835,10 @@ def main():
 
             ## Trigger selection in data and MC
             if LepCat == 'SingleMu':
-                if not ( ch.L1_SingleMu22 and (ch.HLT_IsoMu24 or ch.HLT_Mu50)): continue
+                if not ( (ch.L1_SingleMu22 or ch.L1_SingleMu25) and (ch.HLT_IsoMu24 or ch.HLT_Mu50)): continue
             if LepCat == 'SingleEG':
-                if not ( (ch.L1_SingleIsoEG28er2p5 or ch.L1_SingleEG36er2p5) and ch.HLT_Ele32_WPTight_Gsf): continue
+                if not (ch.HLT_Ele32_WPTight_Gsf or ch.HLT_Ele35_WPTight_Gsf_L1EGMT or \
+                        ch.HLT_Ele115_CaloIdVT_GsfTrkIdT or ch.HLT_Ele50_CaloIdVT_GsfTrkIdT_PFJet165): continue
             nPassTrg += 1
 
             ## AK8 jet has passsed all event selection cuts
@@ -754,26 +848,59 @@ def main():
             nQinJ = 0
             nCinJ = 0
             for xVec in bVecs:
-                if fatVec.DeltaR(xVec) < 0.8: nBinJ += 1
+                if fatVec.DeltaR(xVec) < 0.80: nBinJ += 1
             for xVec in qVecs:
-                if fatVec.DeltaR(xVec) < 0.8: nQinJ += 1
+                if fatVec.DeltaR(xVec) < 0.80: nQinJ += 1
             for xVec in cVecs:
-                if fatVec.DeltaR(xVec) < 0.8: nCinJ += 1
+                if fatVec.DeltaR(xVec) < 0.80: nCinJ += 1
             if       nBinJ < min(CUT_GEN_BBQQ,2): continue
             if nQinJ+nCinJ <    (CUT_GEN_BBQQ-2): continue
             if CUT_GEN_BBQQ < 0 and nBinJ >= 2:   continue
             nPassGen += 1
 
-            ## Remove events where lepton/jet pT fraction is small for dR(lep,jet) < 0.4
+            ## Remove events where lepton/jet pT fraction is small for dR(lep,jet) < 0.40
             lepjet_frac = 999.
             lepjet_dR   = 999.
+            lepjet_pt   = 0.
             for ii in range(len(jlepVecs)):
                 if (lepVecs[0].Pt() / jlepVecs[ii].Pt()) < lepjet_frac:
                     lepjet_frac = lepVecs[0].Pt() / jlepVecs[ii].Pt()
                     lepjet_dR   = lepVecs[0].DeltaR(jlepVecs[ii])
+                    lepjet_pt   = jlepVecs[ii].Pt() - lepVecs[0].Pt()
 
-            if CUT_LFRAC > 0 and lepjet_dR < 0.4 and lepjet_frac < 0.6: continue
-            nPassLepFrac += 1
+            # ## Conclusion: in ttbar events, leptons overlapping jets are prompt, not non-prompt / fake
+            # if lepjet_dR < 0.40 and lepjet_frac < 0.8:
+            #     print('lep/jet dR = %.3f, frac = %.3f' % (lepjet_dR, lepjet_frac))
+            #     print('nQ = %d, nC = %d, nB = %d' % (nQinJ, nCinJ, nBinJ))
+            #     print('RECO lep pT = %d, eta = %.2f, phi = %.2f, %s' % \
+            #           (lepVecs[0].Pt(), lepVecs[0].Eta(), lepVecs[0].Phi(), LepCat))
+            #     print(' GEN lep pT = %d, eta = %.2f, phi = %.2f, ID = %d' % \
+            #           (genLepVec.Pt(), genLepVec.Eta(), genLepVec.Phi(), lastPdgID))
+            #     print('RECO jet pT = %d, deepB = %.3f (vs. %.3f / %.3f), flavB = %.3f (vs. %.3f / %.3f)' % \
+            #           (lepjet_pt, lepjet_deepB, DeepB['L'], DeepB['M'], lepjet_flavB, FlavB['L'], FlavB['M']) )
+            #     for xVec in bVecs:
+            #         if fatVec.DeltaR(xVec) > 0.80:
+            #             print('GEN bjet pT = %d, eta = %.2f, phi = %.2f' % \
+            #                   (xVec.Pt(), xVec.Eta(), xVec.Phi()) )
+
+            if CUT_LFRAC > 0 and lepjet_dR < 0.40 and lepjet_frac < CUT_LFRAC: continue
+            if CUT_LBVETO and (lepjet_deepB > DeepB['M'] or lepjet_flavB > FlavB['M']): continue
+            nPassLepFracB += 1
+
+            # if isTTBar and nBinJ == 1 and nQinJ+nCinJ == 2:
+            #     print('\n*** GEN vs. RECO for AK8(bjj) ***')
+            #     print(' AK8 pT = %d, eta = %.2f, phi = %.2f, mass = %d, bHad = %d' % (fatVec.Pt(), fatVec.Eta(), fatVec.Phi(), fatVec.M(), ch.FatJet_nBHadrons[fatIdx]))
+            #     iB = (0 if fatVec.DeltaR(bVecs[0]) < fatVec.DeltaR(bVecs[1]) else 1)
+            #     oB = (1 if iB == 0 else 0)
+            #     print(' bIn pT = %d, eta = %.2f, phi = %.2f' % (bVecs[iB].Pt(), bVecs[iB].Eta(), bVecs[iB].Phi()))
+            #     print('bOut pT = %d, eta = %.2f, phi = %.2f, dR(AK8) = %.3f' % (bVecs[oB].Pt(), bVecs[oB].Eta(), bVecs[oB].Phi(), bVecs[oB].DeltaR(fatVec)))
+            #     if near_bOut_idx >= 0:
+            #         print(' AK4 pT = %d, eta = %.2f, phi = %.2f, dR = %.2f, deepB = %.2f, flavB = %.2f' % \
+            #               (near_bOut_vec.Pt(), near_bOut_vec.Eta(), near_bOut_vec.Phi(), near_bOut_vec.DeltaR(bVecs[oB]), \
+            #                ch.Jet_btagDeepB[near_bOut_idx], ch.Jet_btagDeepFlavB[near_bOut_idx]))
+            #     print(' lep pT = %d, eta = %.2f, phi = %.2f, dR(bOut) = %.2f' % (genLepVec.Pt(), genLepVec.Eta(), genLepVec.Phi(), genLepVec.DeltaR(bVecs[oB])))
+            #     if lepjet_dR < 0.4:
+            #         print('ljet pT = %d, frac = %.2f, dR = %.2f, deepB = %.3f, flavB = %.3f' % ((lepVecs[0].Pt()/lepjet_frac) - lepVecs[0].Pt(), lepjet_frac, lepjet_dR, lepjet_deepB, lepjet_flavB))
             
             # if nBinJ >= 2 and nQinJ+nCinJ >= 1:
             #     print('lepjet_frac = %.3f' % lepjet_frac)
@@ -850,6 +977,7 @@ def main():
             ## Whole event variables
             X1=FillX(X1,X2,hst, 'nPV'     , min( ch.PV_npvs, 100 ), WGT )
             X1=FillX(X1,X2,hst, 'nPV_good', min( ch.PV_npvsGood, 100), WGT )
+            X1=FillX(X1,X2,hst, 'LHE_HT',   min( ch.LHE_HT, 1999), WGT )
             X1=FillX(X1,X2,hst, 'wgt'     , max( 0.001, min( 1.999, WGT_NO_LUMI ) ), 1.0 )
             X1=FillX(X1,X2,hst, 'wgt_wgt' , max( 0.001, min( 1.999, WGT_NO_LUMI ) ), WGT_NO_LUMI )
 
@@ -860,6 +988,12 @@ def main():
             X1=FillX(X1,X2,hst, 'nJet', len(jetVecs), WGT)
             X1=FillX(X1,X2,hst, 'nMuInFat' ,  muInFat, WGT)
             X1=FillX(X1,X2,hst, 'nEleInFat', eleInFat, WGT)
+
+            if isData:
+                nBinJ, nQinJ = 0
+            X1=FillX(X1,X2,hst, 'nBHadrons', min(ch.FatJet_nBHadrons[fatIdx], 5), WGT)
+            X1=FillX(X1,X2,hst, 'nBinJ',     min(nBinJ, 3), WGT)
+            hst['nBinJ_%d' % X2]    .Fill( min(nBinJ, 3), WGT)
             hst['nQC_vs_B_0']       .Fill( min(nBinJ, 3),
                                            min(nQinJ + 3*nCinJ, 5), WGT)
             hst['nQC_vs_B_%d' % X2] .Fill( min(nBinJ, 3),
@@ -868,8 +1002,17 @@ def main():
                                            min(ch.FatJet_nCHadrons[fatIdx], 8), WGT)
             hst['nCh_vs_Bh_%d' % X2].Fill( min(ch.FatJet_nBHadrons[fatIdx], 5),
                                            min(ch.FatJet_nCHadrons[fatIdx], 8), WGT)
+            hst['nBh_vs_B_0']      .Fill( min(nBinJ, 3),
+                                          min(ch.FatJet_nBHadrons[fatIdx], 5), WGT)
+            hst['nBh_vs_B_%d' % X2].Fill( min(nBinJ, 3),
+                                          min(ch.FatJet_nBHadrons[fatIdx], 5), WGT)
+
             hst['lepjet_frac_vs_dR_0']      .Fill( min(lepjet_dR, 0.499), min(lepjet_frac, 1.099), WGT)
             hst['lepjet_frac_vs_dR_%d' % X2].Fill( min(lepjet_dR, 0.499), min(lepjet_frac, 1.099), WGT)
+            hst['lepjet_frac_vs_deepB_0']      .Fill( max(lepjet_deepB, -0.099), min(lepjet_frac, 1.099), WGT)
+            hst['lepjet_frac_vs_deepB_%d' % X2].Fill( max(lepjet_deepB, -0.099), min(lepjet_frac, 1.099), WGT)
+            hst['lepjet_frac_vs_flavB_0']      .Fill( max(lepjet_flavB, -0.099), min(lepjet_frac, 1.099), WGT)
+            hst['lepjet_frac_vs_flavB_%d' % X2].Fill( max(lepjet_flavB, -0.099), min(lepjet_frac, 1.099), WGT)
 
             ## Lepton ID
             if LepCat == 'SingleMu':
@@ -927,8 +1070,11 @@ def main():
             X1=FillX(X1,X2,hst, 'phi_MET' , metVec.Phi(), WGT)
 
             ## lepton vs. enclosing jet
-            X1=FillX(X1,X2,hst, 'lepjet_frac', min(lepjet_frac, 1.099), WGT)
-            X1=FillX(X1,X2,hst, 'lepjet_dR',   min(lepjet_dR,   0.499), WGT)
+            X1=FillX(X1,X2,hst, 'lepjet_frac',  min(lepjet_frac, 1.099), WGT)
+            X1=FillX(X1,X2,hst, 'lepjet_pt',    min(max(lepjet_pt, 1), 999), WGT)
+            X1=FillX(X1,X2,hst, 'lepjet_dR',    min(lepjet_dR,   0.499), WGT)
+            X1=FillX(X1,X2,hst, 'lepjet_deepB', min(max(lepjet_deepB, -0.099), 0.999), WGT)
+            X1=FillX(X1,X2,hst, 'lepjet_flavB', min(max(lepjet_flavB, -0.099), 0.999), WGT)
 
             ## mass
             X1=FillX(X1,X2,hst, 'mass_fat', fatVec.M(), WGT)
@@ -961,18 +1107,28 @@ def main():
 
             if len(jetVecs) > 0:
                 X1=FillX(X1,X2,hst, 'dR_fat_jet_min'  , fatVec.DeltaR(near_fat_vec), WGT)
+                X1=FillX(X1,X2,hst, 'dR_lep_jet_min'  , fatVec.DeltaR(near_lep_vec), WGT)
                 X1=FillX(X1,X2,hst, 'dR_lJ_jet_min'   , lJ_vec.DeltaR(near_lJ_vec), WGT)
                 X1=FillX(X1,X2,hst, 'dR_fat_deepB_max', fatVec.DeltaR(deepB_vec), WGT)
                 X1=FillX(X1,X2,hst, 'dR_lJ_deepB_max' , lJ_vec.DeltaR(deepB_vec), WGT)
                 X1=FillX(X1,X2,hst, 'dR_fat_flavB_max', fatVec.DeltaR(flavB_vec), WGT)
                 X1=FillX(X1,X2,hst, 'dR_lJ_flavB_max' , lJ_vec.DeltaR(flavB_vec), WGT)
 
-                X1=FillX(X1,X2,hst, 'jet_pt_near_fat', min(299, ch.Jet_pt[near_fat_idx]), WGT)
-                X1=FillX(X1,X2,hst, 'jet_pt_near_lJ' , min(299, ch.Jet_pt[near_lJ_idx] ), WGT)
-                X1=FillX(X1,X2,hst, 'deepB_near_fat', max(-0.099, min(0.999, ch.Jet_btagDeepB[near_fat_idx]) ), WGT)
-                X1=FillX(X1,X2,hst, 'deepB_near_lJ' , max(-0.099, min(0.999, ch.Jet_btagDeepB[near_lJ_idx] ) ), WGT)
-                X1=FillX(X1,X2,hst, 'flavB_near_fat', max(-0.099, min(0.999, ch.Jet_btagDeepFlavB[near_fat_idx]) ), WGT)
-                X1=FillX(X1,X2,hst, 'flavB_near_lJ' , max(-0.099, min(0.999, ch.Jet_btagDeepFlavB[near_lJ_idx] ) ), WGT)
+                X1=FillX(X1,X2,hst, 'jet_pt_near_fat', min(999, ch.Jet_pt[near_fat_idx]), WGT)
+                X1=FillX(X1,X2,hst, 'jet_pt_near_lep', min(999, ch.Jet_pt[near_lep_idx]), WGT)
+                X1=FillX(X1,X2,hst, 'jet_pt_near_lJ' , min(999, ch.Jet_pt[near_lJ_idx] ), WGT)
+                X1=FillX(X1,X2,hst, 'deepB_near_fat', max(-0.099, min(0.999, ch.Jet_btagDeepB[near_fat_idx] if \
+                                                                      abs(ch.Jet_eta[near_fat_idx]) < 2.4 else -1) ), WGT)
+                X1=FillX(X1,X2,hst, 'deepB_near_lep', max(-0.099, min(0.999, ch.Jet_btagDeepB[near_lep_idx] if \
+                                                                      abs(ch.Jet_eta[near_lep_idx]) < 2.4 else -1) ), WGT)
+                X1=FillX(X1,X2,hst, 'deepB_near_lJ' , max(-0.099, min(0.999, ch.Jet_btagDeepB[near_lJ_idx]  if \
+                                                                      abs(ch.Jet_eta[near_lJ_idx])  < 2.4 else -1) ), WGT)
+                X1=FillX(X1,X2,hst, 'flavB_near_fat', max(-0.099, min(0.999, ch.Jet_btagDeepFlavB[near_fat_idx] if \
+                                                                      abs(ch.Jet_eta[near_fat_idx]) < 2.4 else -1) ), WGT)
+                X1=FillX(X1,X2,hst, 'flavB_near_lep', max(-0.099, min(0.999, ch.Jet_btagDeepFlavB[near_lep_idx] if \
+                                                                      abs(ch.Jet_eta[near_lep_idx]) < 2.4 else -1) ), WGT)
+                X1=FillX(X1,X2,hst, 'flavB_near_lJ' , max(-0.099, min(0.999, ch.Jet_btagDeepFlavB[near_lJ_idx]  if \
+                                                                      abs(ch.Jet_eta[near_lJ_idx])  < 2.4 else -1) ), WGT)
 
                 X1=FillX(X1,X2,hst, 'dR_lJ_ISR'   ,     lJ_vec .DeltaR  (isrVec), WGT)
                 X1=FillX(X1,X2,hst, 'dPhi_lvJ_ISR', abs(lvJ_vec.DeltaPhi(isrVec)), WGT)
@@ -1051,7 +1207,8 @@ def main():
     if PRT_BDT_IN:
         bdt_file.close()
     
-    print('\nOut of %d pre-selected events, %d pass b-tag veto, %d lep, %d MET, %d (%d, %d) pass (tight, data) kinematic cuts, %d trigger, %d GEN, %d lep pT frac' % (nPassPre, nPassBtag, nPassLep, nPassMET, nPassKin, nPassTight, nPassData, nPassTrg, nPassGen, nPassLepFrac))
+    print('\n%d pre-sel evts: %d pass noise, %d b-tag, %d lep, %d MET, %d (%d, %d) pass (tight, data) kin, %d trig, %d GEN, %d lep/jet' % \
+          (nPassPre, nPassNoise, nPassBtag, nPassLep, nPassMET, nPassKin, nPassTight, nPassData, nPassTrg, nPassGen, nPassLepFracB))
 
     out_file.cd()
 
