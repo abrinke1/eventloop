@@ -18,13 +18,13 @@ LUMI    = 59830    ## 2018 integrated lumi (pb-1), certified "Good"
 PRT_BDT_IN   = True    ## Print input variables for BDT training in CSV format
 SKIM_H4B     = False   ## Use input files from skims/Hto4b_0p8/
 CUT_GEN_BBQQ = 0       ## 4 for BBQQ, 3 for BBQ, 2 for BB, 1 for B, 0 for none, -1 for not-BB
-CUT_MASS     = 140     ## Minimum AK8 jet PF mass         - Was 140, use 150 for "tight" selection
-CUT_MSOFT    = 50      ## Minimum AK8 jet soft-drop mass  - Was 20, tighten to 50 as per analysis
-CUT_PT_J     = 350     ## Minimum AK8 jet pT              - Default 0, use 350 for "tight" selection
+CUT_MASS     = 50      ## Minimum AK8 jet PF mass         - Default 50, Use 140 for BBQQ selection
+CUT_MSOFT    = 20      ## Minimum AK8 jet soft-drop mass  - Default 20, use 50 for "tight" selection
+CUT_PT_J     = 170     ## Minimum AK8 jet pT              - Default 170, use 350 for BBQQ selection
 CUT_DR_LJ    = 0       ## Maximum dR(AK8, lepton)         - Default 0, use 2.35 for "tight" selection
-CUT_PT_LVJ   = 250     ## Minimum pT(AK8, lep, MET)       - Default 0, use 250 for "tight" selection
+CUT_PT_LVJ   = 0       ## Minimum pT(AK8, lep, MET)       - Default 0, use 250 for BBQQ selection
 CUT_MT_LVJ   = 0       ## Maximum MT(AK8, lep, MET)       - Default 0, use 700 for "tight" selection
-CUT_M_LVJ    = 1000    ## Maximum mass(AK8, lep, MET)     - Default 0, use 1000 for "tight" selection
+CUT_M_LVJ    = 0       ## Maximum mass(AK8, lep, MET)     - Default 0, use 1000 for BBQQ selection
 CUT_HT_ISR   = 0       ## Minimum HT(AK4 jets)            - Default 0, use 300 for "tight" selection
 CUT_PT_ISR   = 0       ## Minimum pT(AK4 jets)            - Default 0, use 250 for "tight" selection
 CUT_LFRAC    = 0.4     ## Minimum lepton/AK4 jet pT ratio for events with dR(lep,jet) < 0.4 - Use 0.4
@@ -150,7 +150,7 @@ def main():
     out_file_str += '.root'
     out_file = R.TFile(out_file_str,'recreate')
     if PRT_BDT_IN:
-        bdt_file = open(out_file_str.replace('plots','csv/2024_07_31').replace('.root','.csv'), 'w')
+        bdt_file = open(out_file_str.replace('plots','csv/2024_08_20').replace('.root','.csv'), 'w')
 
     chains = {}
     chains['Events'] = 0
