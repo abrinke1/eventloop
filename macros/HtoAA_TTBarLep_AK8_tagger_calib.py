@@ -16,17 +16,17 @@ R.gROOT.SetBatch(True)  ## Don't display histograms or canvases when drawn
 R.gStyle.SetOptStat(0)  ## Don't display stat boxes
 
 ## User configuration
-VERBOSE  = True
+VERBOSE  = False
 IN_DIR   = '/afs/cern.ch/work/c/csutanta/public/rootfiles/unskimmed_singlemuon_'
 CATS     = ['bdtVeto',
             'bdtLo',
             'bdtMed',
             'bdtHi']
 SELS     = ['0b_BBQ']
-TAGGERS  = {'particleNetMD_XbbOverQCD':[0.1,0.5,0.75]}
-#TAGGERS  = {'FatJet_PNetMD_Hto4b_Htoaa34bOverQCD':[0.8]}
+#TAGGERS  = {'particleNetMD_XbbOverQCD':[0.1,0.5,0.75]}
+TAGGERS  = {'FatJet_PNetMD_Hto4b_Htoaa34bOverQCD':[0.02,0.2,0.8]}
 TAGNM    = {'particleNetMD_XbbOverQCD':'Xbb',
-            'FatJet_PNetMD_Hto4b_Htoaa34bOverQCD':'Htoaa34b'}
+            'FatJet_PNetMD_Hto4b_Htoaa34bOverQCD':'Hto34b'}
 SVAR  = 2.0  ## Systematic factor of variation in tagging efficiency
 
 YEAR     = '2018'
@@ -103,30 +103,36 @@ def fill_pass_fail(h_in, h_out, cuts):
 def make_syst_hists(h_out, syst):
     if VERBOSE: print('  * Integral %s = %.1f' % (h_out.GetName(), h_out.Integral()))
     h_outs_up_dn = []
-    for iBin in range(1, h_out.GetNbinsX()+1):
+
+    ## Vary bins N,N-1,...2. When varying bin iN, adjust bins 1...iN-1 to keep total normalization.
+    for iBin in range(h_out.GetNbinsX(), 1, -1):
         bStr = '_%dbin' % iBin
         h_out_up = h_out.Clone(h_out.GetName()+'_s'+syst+bStr+'Up')
         h_out_dn = h_out.Clone(h_out.GetName()+'_s'+syst+bStr+'Down')
-        iN   = h_out.GetBinContent(iBin)
-        iNe  = h_out.GetBinError(iBin)
-        tot  = h_out.Integral()
-        oN   = tot - iN
+        iN  = h_out.GetBinContent(iBin)
+        iNe = h_out.GetBinError(iBin)
+        oN  = h_out.Integral(1, iBin-1)  ## Integrate bins *below* iBin
         ## No shape variation if bin contains all or no events
         if iN == 0 or oN == 0:
             h_outs_up_dn.append(h_out_up)
             h_outs_up_dn.append(h_out_dn)
             continue
         iNup = min(iN*(SVAR-1.0), oN*(SVAR-1.0)/SVAR)  ## How much to add for up variation
-        oFup = (oN - iNup) / oN                        ## Factor of reduction for other bins
         iNdn = min(iN*(SVAR-1.0)/SVAR, oN*(SVAR-1.0))  ## How much to subtract for down variation
-        oFdn = (oN + iNdn) / oN                        ## Factor of increase for other bins
-        if VERBOSE: print('    - Bin %d %.2f --> +%.2f/-%.2f' % (iBin, iN, iNup, iNdn))
-        h_out_up.SetBinContent(iBin, iN+iNup)
-        h_out_dn.SetBinContent(iBin, iN-iNdn)
-        h_out_up.SetBinError(iBin, iNe*(iN+iNup)/iN)
-        h_out_dn.SetBinError(iBin, iNe*(iN-iNdn)/iN)
-        for xBin in range(1, h_out.GetNbinsX()+1):
-            if xBin == iBin: continue
+        iFsy = min((iNup+iN)/iN, iN/(iN-iNdn))         ## Pick smaller of up/down for symmetric varation
+        oFup = (oN - (iN*iFsy - iN)) / oN              ## Factor of reduction for other bins
+        oFdn = (oN - (iN/iFsy - iN)) / oN              ## Factor of increase for other bins
+
+        if VERBOSE: print('    - Bin %d %.2f --> +%.2f/-%.2f' % (iBin, iN, iN*(iFsy-1), iN*(1 - (1/iFsy))))
+        if VERBOSE: print('    - Bin %d  iN = %.2f, oN = %.2f, iFsy = %.3f, oFup = %.3f, oFdn = %.3f.' % (iBin, iN, oN, iFsy, oFup, oFdn))
+        if (iFsy <= 0 or oFup <= 0 or oFdn <= 0):
+            print('\n\nBAD ERROR! Bin %d iFsy = %.3f, oFup = %.3f, oFdn = %.3f.\n\n' % (iBin, iFsy, oFup, oFdn))
+            sys.exit()
+        h_out_up.SetBinContent(iBin, iN*iFsy)
+        h_out_dn.SetBinContent(iBin, iN/iFsy)
+        h_out_up.SetBinError(iBin, iNe*iFsy)
+        h_out_dn.SetBinError(iBin, iNe/iFsy)
+        for xBin in range(1, iBin):
             xN  = h_out.GetBinContent(xBin)
             xNe = h_out.GetBinError(xBin)
             h_out_up.SetBinContent(xBin, xN*oFup)
@@ -241,7 +247,8 @@ def main():
     
     ## Create a separate output ROOT file for each selection option
     for sel in SELS:
-        out_file_str = OUT_DIR+'AK8_tagger_calib_%s_%s_slc7.root' % (sel, str(SVAR).replace('.','p'))
+        tag_str = '%s'.join(TAGNM[tag] for tag in TAGGERS.keys())
+        out_file_str = OUT_DIR+'AK8_tagger_calib_%s_%s_%s_slc7.root' % (tag_str, sel, str(SVAR).replace('.','p'))
         out_file = R.TFile(out_file_str, 'recreate')
         print('\n*******\nWriting to %s' % out_file_str)
         for h_out_name in h_outs[sel].keys():
